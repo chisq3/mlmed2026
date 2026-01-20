@@ -1,0 +1,92 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\title{Practical work 1: The study of ECG Heartbeat Categorization }
+
+\begin{document}
+
+\maketitle
+\section{Introduction}
+In this work, we study the problem of ECG heartbeat categorization using a one-dimensional Convolutional Neural Network (1D CNN). The main objectives are to analyze the dataset, pre-process the data, and implement a classification model to distinguish between different classes of heartbeats.
+
+\section{Dataset and Exploratory Data Analysis}
+\subsection{Dataset Description}
+The dataset used in this study is the MIT-BIH Arrhythmia Database, a benchmark resource for the classification of ECG heartbeats. The five classes of heartbeats in the dataset are:
+\begin{itemize}
+    \item \textbf{N}: Normal beat
+    \item \textbf{S}: Supraventricular ectopic beat
+    \item \textbf{V}: Ventricular ectopic beat
+    \item \textbf{F}: Fusion beat
+    \item \textbf{Q}: Unknown beat
+\end{itemize}
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\columnwidth]{ava_ecg.png}
+    \caption{Average ECG waveform by class}
+    \label{fig:avg_waveform}
+\end{figure}
+
+\subsection{Class Distribution}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\columnwidth]{class_distribution.png} 
+    \caption{Class distribution of heartbeat types}
+    \label{fig:class_dist}
+\end{figure}
+
+A first insight into the dataset reveals a highly imbalanced class distribution, as illustrated in Figure~\ref{fig:class_dist}. The majority of samples belong to the \textbf{N} (Normal) class, significantly outnumbering the remaining arrhythmic classes (\textbf{S}, \textbf{V}, \textbf{F}, and \textbf{Q}).
+
+\begin{itemize}
+    \item \textbf{N}: 72,471 samples
+    \item \textbf{S}: 2,223 samples
+    \item \textbf{V}: 5,788 samples
+    \item \textbf{F}: 641 samples
+    \item \textbf{Q}: 6,431 samples
+\end{itemize}
+
+
+\section{Methodology}
+
+The dataset was first split into training and validation sets (90\%/10\%), and features were standardized. We addressed class imbalance by providing computed class weights during training. For classification, we implemented a 1D Convolutional Neural Network (CNN) with two convolutional and max pooling layers for temporal feature extraction, followed by a dense layer with dropout for regularization, and a softmax output layer to predict the 5 heartbeat classes.
+
+\section{Evaluation and Results}
+The performance of the 1D CNN model was evaluated on the test set using a confusion matrix (Figure~\ref{fig:conf_matrix}) and key classification metrics (Table~\ref{tab:metrics}). The model's overall weighted F1-score of 0.967 and accuracy of 96.4\% indicate effective heartbeat classification, despite class imbalance. The confusion matrix shows that the model performs excellently across all heartbeat classes.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{confusion_matrix.png}
+    \caption{Confusion matrix of the 1D CNN model}
+    \label{fig:conf_matrix}
+\end{figure}
+
+\begin{table}[h]
+    \centering
+    \caption{CNN Classification report}
+    \begin{tabular}{lcccc}
+    \toprule
+    Class & Precision & Recall & F1-score & Support \\
+    \midrule
+    N & 0.9930 & 0.9674 & 0.9800 & 18118 \\
+    S & 0.5742 & 0.8417 & 0.6827 & 556 \\
+    V & 0.9016 & 0.9558 & 0.9279 & 1448 \\
+    F & 0.5472 & 0.8580 & 0.6683 & 162 \\
+    Q & 0.9713 & 0.9888 & 0.9800 & 1608 \\
+    \midrule
+    \textbf{Accuracy} & & &\textbf{0.9642} & 21892 \\
+    Macro avg & 0.7975 & 0.9223 & 0.8478 & 21892 \\
+    Weighted avg & 0.9714 & 0.9642 & 0.9667 & 21892 \\
+    \bottomrule
+    \end{tabular}
+    \label{tab:metrics}
+\end{table}
+
+\section{Conclusion}
+
+In this study, we explored the ECG Heartbeat Categorization dataset and implemented a 1D Convolutional Neural Network for heartbeat classification. Our model achieved an accuracy of \textbf{96.4\%} on the test set, demonstrating its effectiveness in distinguishing between five heartbeat classes. Further improvements may involve more advanced architectures or signal augmentation to enhance predictive performance.
+
+\end{document}
+
