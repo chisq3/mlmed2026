@@ -1,0 +1,81 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\title{Practical Work 2: Measurement of Fetal Head Circumference}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Fetal Head Circumference (HC) is a key biometric parameter for monitoring fetal growth. Automating this measurement using regression models can assist sonographers. We employ a pre-trained ResNet18 model and fine-tune it for the regression task.
+
+\section{Dataset and Preprocessing}
+\subsection{Dataset Description}
+The dataset used in this study is obtained from the HC18 Grand Challenge. It comprises a total of 1,334 2D fetal ultrasound images, officially divided into a training set of 999 images and a test set of 335 images.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\columnwidth]{sample.png} 
+    \caption{Sample 2D ultrasound images from the HC18 dataset.}
+    \label{fig:dataset_sample}
+\end{figure}
+
+The dataset covers various stages of fetal development, with Head Circumference (HC) values ranging from a minimum of 44.3 mm to a maximum of 346.4 mm.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\columnwidth]{distri.png} 
+    \caption{Data distribution of the training set.} 
+    \label{fig:data_dist}
+\end{figure}
+
+\subsection{Preprocessing}
+ Due to the lack of ground truth in the test set, we split the training data into an 80\% training set and a 20\% validation set for evaluation. Images are resized to $224 \times 224$ pixels and normalized using ImageNet statistics. To improve generalization and prevent overfitting, we applied data augmentation techniques such as Random Horizontal Flip and Random Rotation ($\pm 10^\circ$).
+
+\section{Methodology}
+\subsection{Model Architecture}
+We utilized the ResNet18 architecture. The final Fully Connected layer was modified to output a single continuous value (HC in mm). The Mean Squared Error (MSE) is used as the loss function.
+
+\subsection{Training Strategy}
+We performed hyperparameter tuning with three main configurations:
+\begin{itemize}
+    \item \textbf{Baseline:} Adam optimizer with low learning rate ($10^{-4}$).
+    \item \textbf{Scheduler:} Adam ($10^{-3}$) with ReduceLROnPlateau.
+    \item \textbf{Momentum:} SGD ($10^{-4}$) with Momentum 0.9.
+\end{itemize}
+Early Stopping (Patience=5) was implemented to determine the optimal number of epochs.
+
+\section{Experiments and Results}
+We compared the three optimization strategies. The results are summarized in Table \ref{tab:results}.
+
+\begin{table}[h]
+    \centering
+    \caption{Comparison of Optimization Strategies}
+    \label{tab:results}
+    \begin{tabular}{lccc}
+    \toprule
+    Optimizer & Learning Rate & Batch Size & Best Val MAE (mm) \\
+    \midrule
+    Adam & $10^{-4}$ & 32 & 139.21 \\
+    Adam + Scheduler & $10^{-3}$ & 32 & 13.66 \\
+    \textbf{SGD} & $\mathbf{10^{-4}}$ & \textbf{32} & \textbf{10.97} \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+SGD ($10^{-4}$) combined with momentum proved to be the most effective optimizer, achieving the lowest error. It offered more stable learning compared to Adam, leading to better generalization on the validation set.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\columnwidth]{scatter_SGD.png} 
+    \caption{Scatter plot of Ground Truth vs. Predicted HC using SGD optimizer}
+    \label{fig:scatter}
+\end{figure}
+
+Figure \ref{fig:scatter} illustrates the correlation between the Ground Truth and Predicted HC values for the best model (SGD). The data points cluster tightly around the diagonal line, indicating high prediction accuracy.
+
+\section{Conclusion}
+The ResNet18 model optimized with SGD proved to be the most effective strategy, achieving a prediction error of 10.97 mm. Future work will explore segmentation-based approaches, such as U-Net, to enable visual verification and further improve measurement accuracy.
+
+\end{document}
