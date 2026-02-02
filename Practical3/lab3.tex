@@ -1,0 +1,177 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{amsmath}
+
+\title{Practical Work 3: Segmentation of COVID-19 X-ray Images}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+COVID-19 detection using Chest X-rays (CXR) is a critical task in medical imaging. While classification models can detect the presence of the virus, segmentation models provide more granular information by localizing the infected regions. In this practical work, we employ a Deep Learning approach using the U-Net architecture to segment COVID-19 lesions. Instead of training the Infection Segmentation model from scratch, we first train the model to segment the lungs. This pre-training phase allows the network’s encoder to learn robust features regarding lung shapes and
+boundaries. Subsequently, we use this pre-trained model as the backbone for the infection detection task, helping the model converge faster and achieve higher accuracy.
+
+\section{Dataset and Preprocessing}
+
+\subsection{Dataset Description}
+The dataset is structured to support our two-stage transfer learning approach. It is organized into two primary directories: \textbf{Lung Segmentation} and \textbf{Infection Segmentation}. The Lung Segmentation folder contains pairs of raw X-ray images and lung masks. The Infection Segmentation folder is more specialized, containing triplets: the raw image, the lung mask, and the ground truth infection mask. To ensure a severe evaluation protocol, both datasets are stratified into independent Train, Val, and Test subsets.
+
+\begin{table}[h]
+    \centering
+    \caption{Data Distribution for Lung Segmentation}
+    \label{tab:lung_data_dist}
+    \begin{tabular}{lccc}
+    \toprule
+    \textbf{Category} & \textbf{Train} & \textbf{Val} & \textbf{Test} \\
+    \midrule
+    COVID-19 & 7,658 & 1,903 & 2,395 \\
+    Normal & 6,849 & 1,712 & 2,140 \\
+    Non-COVID & 7,208 & 1,802 & 2,253 \\
+    \midrule
+    \textbf{Total Images} & \textbf{21,715} & \textbf{5,417} & \textbf{6,788} \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+
+\begin{table}[h]
+    \centering
+    \caption{Data Distribution for Infection Segmentation}
+    \label{tab:inf_data_dist}
+    \begin{tabular}{lccc}
+    \toprule
+    \textbf{Category} & \textbf{Train} & \textbf{Val} & \textbf{Test} \\
+    \midrule
+    COVID-19 & 1,864 & 466 & 583 \\
+    Normal & 932 & 233 & 291 \\
+    Non-COVID & 932 & 233 & 292 \\
+    \midrule
+    \textbf{Total Images} & \textbf{3,728} & \textbf{932} & \textbf{1,166} \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Preprocessing and ROI Generation}
+All images are resized to $256 \times 256$ pixels and converted to grayscale (1 channel). To improve the infection segmentation performance, we applied a \textbf{Region of Interest (ROI)} strategy:
+\begin{equation}
+    I_{ROI} = I_{Original} \times M_{Lung}
+\end{equation}
+Where $I_{Original}$ is the raw X-ray and $M_{Lung}$ is the lung mask. This step removes the clavicles, heart, and background, leaving only the lung area where infections occur.
+
+To prevent overfitting, we used the \texttt{Albumentations} library for data augmentation, applying:
+\begin{itemize}
+    \item Random Horizontal Flip
+    \item Shift, Scale, and Rotate
+    \item Random Brightness and Contrast
+\end{itemize}
+
+\section{Methodology}
+
+\subsection{Model Architecture}
+We utilized the \textbf{U-Net} architecture, a standard Convolutional Neural Network (CNN) for biomedical image segmentation. It consists of:
+\begin{itemize}
+    \item \textbf{Encoder:} Extracts features using convolutional layers and max pooling (contracting path).
+    \item \textbf{Decoder:} Reconstructs the segmentation mask using up-sampling and skip connections (expanding path).
+\end{itemize}
+
+Our training pipeline consists of two phases:
+
+\subsection{Phase 1: Lung Segmentation Pre-training}
+In this initial phase, the U-Net is trained to segment the entire lung field.
+\begin{itemize}
+    \item \textbf{Objective:} To teach the Encoder how to extract high-level anatomical features of the lungs and ignore the background.
+    \item \textbf{Loss Function:} We use Dice Loss to handle the shape of the lungs.
+    \item \textbf{Outcome:} A "Lung Model" that understands lung boundaries effectively.
+\end{itemize}
+
+\subsection{Phase 2: Infection Segmentation Fine-tuning}
+In the second phase, we initialize the Infection Model using the \textbf{weights from the pre-trained Lung Model}.
+\begin{itemize}
+    \item \textbf{Transfer Learning:} By reusing the pre-trained weights, the model starts with a good understanding of lung structures, allowing it to focus immediately on detecting subtle infection patterns.
+    \item \textbf{Hybrid Loss Function:} To handle small infection regions, we switch to a combination of BCE and Dice Loss:
+    \begin{equation}
+        Loss = 0.5 \times L_{BCE} + 0.5 \times L_{Dice}
+    \end{equation}
+\end{itemize}
+
+\section{Results}
+
+\subsection{Quantitative Evaluation}
+The model performance was evaluated on the Test set using Dice Score and Intersection over Union (IoU). The results are summarized in Table \ref{tab:lung_results} and  Table \ref{tab:inf_results}.
+
+\begin{table}[h]
+    \centering
+    \caption{Evaluation Metrics on Lung Segmentation Test Set}
+    \label{tab:lung_results}
+    \begin{tabular}{lc}
+    \toprule
+    \textbf{Metric} & \textbf{Value} \\
+    \midrule
+    Mean Loss  & 0.0372 \\
+    Mean Dice Score & \textbf{0.9690} \\
+    Mean IoU Score  & 0.9411 \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Evaluation Metrics on Infection Segmentation Test Set}
+    \label{tab:inf_results}
+    \begin{tabular}{lc}
+    \toprule
+    \textbf{Metric} & \textbf{Value} \\
+    \midrule
+    Mean Loss  & 0.3656 \\
+    Mean Dice Score  & \textbf{0.6167} \\
+    Mean IoU Score  & 0.5642 \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+The model performance was evaluated on independent test sets for both phases. In the Lung Segmentation task, the model achieved an exceptional Mean Dice Score of 0.9690, demonstrating a precise understanding of anatomical lung structures. Although the Infection Segmentation task was significantly more challenging due to the fuzzy and irregular boundaries of the lesions, the model still yielded a promising Dice Score of 0.6167. These results confirm that our two-stage approach is effective in localizing COVID-19 infections within the lungs
+
+\subsection{Qualitative Results}
+
+\begin{figure}[h]
+    \centering
+    
+    \begin{subfigure}[b]{0.4\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{image_inf1.png} 
+        \caption{Positive Case: Successful segmentation of COVID-19 infection lesions.}
+        \label{fig:res_covid}
+    \end{subfigure}
+    
+    \vspace{0.2cm} 
+
+    \begin{subfigure}[b]{0.4\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{image_inf2.png}
+        \caption{Mild Infection Case: Small or scattered lesions detected within the ROI.}
+        \label{fig:res_mild}
+    \end{subfigure}
+    
+    \vspace{0.2cm}
+
+    \begin{subfigure}[b]{0.4\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{image_non2.png}
+        \caption{Normal Case: The model correctly predicts no infection (Blank Output).}
+        \label{fig:res_normal}
+    \end{subfigure}
+
+    \caption{Qualitative Visualization of Segmentation Results}
+    \label{fig:qualitative_results}
+\end{figure}
+
+Figure \ref{fig:qualitative_results} visualizes the segmentation performance, showing that the model's predictions closely match the ground truth across different scenarios. It effectively identifies lesions in both severe and mild cases while correctly outputting blank masks for normal patients.
+
+\section{Conclusion}
+
+In this work, we implemented a two-stage U-Net framework for COVID-19 lesion segmentation. By first segmenting the lungs to create a precise Region of Interest (ROI) and then transferring learned weights to the infection model, we effectively minimized background noise. Quantitative evaluation yielded an excellent Dice Score of 0.9690 for lung segmentation and 0.6167 for infection detection. These results confirm that our ROI-based transfer learning strategy is a viable and promising approach for assisting in automated COVID-19 diagnosis. Future work will focus on improving the detection of subtle lesions and integrating the model into clinical workflows.
+
+\end{document}
